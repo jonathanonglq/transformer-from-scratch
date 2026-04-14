@@ -1,4 +1,4 @@
-# Transformer Architecture Overview
+# Transformer Architecture (Decoder Only) Overview
 
 ## End-to-End Flow
 

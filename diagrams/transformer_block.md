@@ -20,6 +20,12 @@ flowchart LR
     classDef output fill:#FFEBEE,stroke:#E53935,color:#000,stroke-width:2px;
 ```
 
+## Legend
+
+- `B` = batch size
+- `S` = sequence length
+- `d_model` = embedding / model dimension
+
 ## Transformer Block Breakdown
 
 | Block | What it does | Input Shape | Output Shape | What the output represents |
