@@ -1,0 +1,10 @@
+position,input_token,target_next,pred_next,correct,pred_confidence,target_confidence
+0,the,farmer,bird,0,0.110351,0.062776
+1,farmer,dropped,fixed,0,0.307124,0.217968
+2,dropped,the,the,1,0.999544,0.999544
+3,the,jacket,jacket,1,0.994261,0.994261
+4,jacket,and,and,1,0.997512,0.997512
+5,and,the,the,1,0.999649,0.999649
+6,the,crowd,crowd,1,0.998042,0.998042
+7,crowd,watched,watched,1,0.994128,0.994128
+8,watched,<eos>,<eos>,1,0.999191,0.999191

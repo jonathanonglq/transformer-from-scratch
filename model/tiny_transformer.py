@@ -74,7 +74,7 @@ class TinyTransformer(nn.Module):
         # each token vector becomes a 20-dim score vector. Each of these 20 numbers is a score for one possible vocab token i.e. logits.
         self.output_layer = nn.Linear(d_model, vocab_size)
 
-    def forward(self, x, mask=None):
+    def forward(self, x, mask=None, return_attentions=False):
         """
         x shape: (B, S)
         """
@@ -88,12 +88,22 @@ class TinyTransformer(nn.Module):
         x = self.pos_encoding(x)
 
         # Step 3: pass through transformer blocks
+
+        all_attentions = []
+
         for layer in self.layers:
-            x = layer(x, mask=mask)
+            if return_attentions:
+                x, attn_weights = layer(x, mask=mask, return_attentions=True)
+                all_attentions.append(attn_weights)
+            else:
+                x = layer(x, mask=mask)
 
         # Step 4: project to vocab
         # each position produces a vocab-sized logit vector.
         # in next-token prediction training, this vector is used to predict the next token. 
         logits = self.output_layer(x)  # (B, S, vocab_size)
 
+        if return_attentions:
+            return logits, all_attentions
+        
         return logits

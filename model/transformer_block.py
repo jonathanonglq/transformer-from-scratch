@@ -18,7 +18,7 @@ class TransformerBlock(nn.Module):
         self.norm1 = nn.LayerNorm(d_model)
         self.norm2 = nn.LayerNorm(d_model)
 
-    def forward(self, x, mask=None):
+    def forward(self, x, mask=None, return_attentions=False):
         """
         x shape: (B, S, d_model)
         """
@@ -26,7 +26,7 @@ class TransformerBlock(nn.Module):
         # ---- Multi-head attention ----
         # lets tokens exchange information via mha
 
-        attn_output, _ = self.mha(x, mask=mask)
+        attn_output, attn_weights = self.mha(x, mask=mask)
 
         # Residual + norm
         # keep what I had, and add some useful new info
@@ -42,5 +42,8 @@ class TransformerBlock(nn.Module):
         # Residual + norm
         x = x + ffn_output
         x = self.norm2(x)
+
+        if return_attentions:
+            return x, attn_weights
 
         return x

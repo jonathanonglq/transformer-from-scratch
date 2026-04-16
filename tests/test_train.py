@@ -3,7 +3,6 @@ import torch.nn.functional as F
 
 from model.tiny_transformer import TinyTransformer
 
-
 def build_vocab(tokens: list[str]) -> dict[str, int]:
     # Preserve first-appearance order for reproducibility/readability
     return {tok: i for i, tok in enumerate(dict.fromkeys(tokens))}
