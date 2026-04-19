@@ -1,0 +1,10 @@
+position,input_token,target_next,pred_next,correct,pred_confidence,target_confidence
+0,the,artist,student,0,0.085345,0.048690
+1,artist,pushed,followed,0,0.122420,0.085565
+2,pushed,the,the,1,0.999533,0.999533
+3,the,bottle,guitar,0,0.115052,0.095707
+4,bottle,and,in,0,0.589144,0.389298
+5,and,the,the,1,0.996492,0.996492
+6,the,child,child,1,0.095852,0.095852
+7,child,watched,watched,1,0.985817,0.985817
+8,watched,<eos>,<eos>,1,0.998821,0.998821

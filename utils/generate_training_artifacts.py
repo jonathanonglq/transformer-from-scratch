@@ -12,6 +12,7 @@ import torch.nn.functional as F
 
 from model.tiny_transformer import TinyTransformer
 from model.train import (
+    EOS_TOKEN,
     PAD_TOKEN,
     batch_iterator,
     build_causal_padding_mask,
@@ -125,6 +126,67 @@ def collect_validation_sample(
         )
 
     return rows, pred_confidence, target_confidence, topk_rows
+
+
+def collect_validation_sequence_table(
+    model: TinyTransformer,
+    val_examples: list[tuple[torch.Tensor, torch.Tensor]],
+    inv_vocab: dict[int, str],
+    pad_idx: int,
+    device: torch.device,
+) -> list[dict]:
+    rows: list[dict] = []
+    model.eval()
+
+    with torch.no_grad():
+        for example_index, (input_ids, target_ids) in enumerate(val_examples):
+            input_batch = input_ids.unsqueeze(0).to(device)
+            target_batch = target_ids.unsqueeze(0).to(device)
+            mask = build_causal_padding_mask(input_batch, pad_idx=pad_idx)
+            logits = model(input_batch, mask=mask)
+            pred_ids = logits.argmax(dim=-1).squeeze(0).cpu()
+
+            input_tokens = decode_ids(input_ids, inv_vocab, pad_idx=pad_idx)
+            target_tokens = decode_ids(target_ids, inv_vocab, pad_idx=pad_idx)
+            pred_tokens = decode_ids(pred_ids, inv_vocab, pad_idx=pad_idx)
+
+            target_cpu = target_ids.cpu()
+            num_positions = int(target_cpu.numel())
+            num_correct = int((pred_ids[:num_positions] == target_cpu).sum().item())
+            token_accuracy = num_correct / max(1, num_positions)
+
+            # The original sentence for this example is exactly input_tokens.
+            correct_full_tokens = input_tokens
+
+            # Reconstruct predicted sentence tokens from next-token predictions:
+            # keep the first observed token, then append predicted next tokens
+            # up to (but excluding) the final EOS slot.
+            predicted_full_tokens: list[str] = []
+            if input_tokens:
+                predicted_full_tokens = [input_tokens[0]]
+                for token in pred_tokens[:-1]:
+                    if token == EOS_TOKEN:
+                        break
+                    predicted_full_tokens.append(token)
+
+            next_exact_match = int(pred_tokens == target_tokens)
+            full_exact_match = int(predicted_full_tokens == correct_full_tokens)
+
+            rows.append(
+                {
+                    "example_index": example_index,
+                    "input_sequence": " ".join(input_tokens),
+                    "correct_full_sequence": " ".join(correct_full_tokens),
+                    "predicted_full_sequence": " ".join(predicted_full_tokens),
+                    "full_exact_match": full_exact_match,
+                    "correct_sequence": " ".join(target_tokens),
+                    "predicted_sequence": " ".join(pred_tokens),
+                    "next_token_accuracy": f"{token_accuracy:.6f}",
+                    "next_exact_match": next_exact_match,
+                }
+            )
+
+    return rows
 
 
 def save_csv(rows: Sequence[dict], output_path: Path) -> None:
@@ -365,6 +427,13 @@ def main() -> None:
         pad_idx=pad_idx,
         top_k=args.top_k,
     )
+    sequence_rows = collect_validation_sequence_table(
+        model=model,
+        val_examples=val_examples,
+        inv_vocab=inv_vocab,
+        pad_idx=pad_idx,
+        device=device,
+    )
 
     input_tokens = decode_ids(sample_input, inv_vocab, pad_idx=pad_idx)
     sample_loss = F.cross_entropy(
@@ -388,6 +457,7 @@ def main() -> None:
     plot_topk_positions(topk_rows, output_dir / "validation_topk_positions.png")
 
     save_csv(rows, output_dir / "validation_predictions.csv")
+    save_csv(sequence_rows, output_dir / "validation_sequence_comparison.csv")
     save_csv(history_to_rows(history), output_dir / "loss_history.csv")
 
     summary_path = output_dir / "run_summary.txt"
@@ -418,6 +488,7 @@ def main() -> None:
     print(f"- {output_dir / 'validation_confidence.png'}")
     print(f"- {output_dir / 'validation_topk_positions.png'}")
     print(f"- {output_dir / 'validation_predictions.csv'}")
+    print(f"- {output_dir / 'validation_sequence_comparison.csv'}")
     print(f"- {output_dir / 'loss_history.csv'}")
     print(f"- {output_dir / 'run_summary.txt'}")
 

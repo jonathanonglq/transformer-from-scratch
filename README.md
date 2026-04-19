@@ -13,20 +13,20 @@ This project builds a compact decoder-only Transformer from scratch and uses sma
   - core model components (`attention.py`, `multi_head_attention.py`, `feedforward.py`, `transformer_block.py`, `tiny_transformer.py`)
   - corpus trainer (`train.py`)
 - `data/`
-  - synthetic corpus (`synthetic_corpus_100.txt`, one sentence per line)
+  - synthetic corpora (`synthetic_corpus_100.txt`, `synthetic_corpus_1000.txt`, one sentence per line)
 - `utils/`
-  - helper visualization scripts
+  - helper visualisation scripts
   - `positional_encoding_viz.py` for positional encoding plots
-  - `generate_training_artifacts.py` for training/validation artifacts
+  - `generate_training_artifacts.py` for training/validation artefacts
 - `diagrams/`
   - architecture markdown diagrams
-  - generated PNG artifacts (positional encoding and training visuals)
+  - generated PNG artefacts (positional encoding and training visuals)
 
-## End-to-End Training Process (100-Sentence Corpus)
+## End-to-End Training Process (Corpus Training)
 
 The corpus trainer lives in `model/train.py`. At a high level:
 
-1. Load corpus lines and tokenize each sentence.
+1. Load corpus lines and tokenise each sentence.
 2. Split sentences into train/validation subsets.
 3. Build vocabulary from train set and add special tokens:
    - `<pad>` for padding
@@ -47,50 +47,106 @@ The corpus trainer lives in `model/train.py`. At a high level:
 12. Periodically evaluate validation loss.
 13. Decode one validation sample at the end for qualitative inspection.
 
-## Visualizing Learning
+## Visualising Learning
 
-Generated artifacts in `diagrams/training_artifacts/` and how to read them:
+This repo compares two training experiments:
 
-- **`learning_curve.png`**  
-  Train loss and validation loss over steps.  
-  Use this to check whether optimization is working and whether validation tracks training.
+### Experiment A: 100-sentence corpus (`synthetic_corpus_100.txt`)
 
-  ![Learning Curve](./diagrams/training_artifacts/learning_curve.png)
+Artefacts: `diagrams/training_artifacts/`  
+Config: `300` steps, batch size `16`, eval every `10`
 
-- **`attention_before_after.png`**  
-  One single image covering **all layers and all heads**.  
-  For each layer/head pair, it shows **before** and **after** attention side by side.  
-  Use this to see where attention becomes more structured/selective.
+Latest run summary:
 
-  ![Attention Before After](./diagrams/training_artifacts/attention_before_after.png)
+- sentences: `100` (`80` train / `20` val)
+- vocab size: `56`
+- train loss: `4.116868 -> 0.443114` (step `1` to `300`)
+- val loss: `3.767409 -> 0.613924` (step `1` to `300`)
+- sample token accuracy: `0.777778`
 
-- **`validation_confidence.png`**  
-  Position-wise probability of predicted token vs target token on one validation sample.
+Key insights:
 
-  ![Validation Confidence](./diagrams/training_artifacts/validation_confidence.png)
+- The model learns quickly because sentence patterns are highly repetitive.
+- Validation loss plateaus around `~0.6` while train loss keeps improving, indicating mild overfitting on a small corpus.
+- Predictions are very confident for common scaffolding tokens (`the`, `and`, `<eos>`).
 
-- **`validation_topk_positions.png`**  
-  Top-k distributions for **all positions** in the validation sample (arranged in a 2-column grid).
+&nbsp;
 
-  ![Validation Top-k](./diagrams/training_artifacts/validation_topk_positions.png)
+Validation sequence comparison preview (first 5 rows):
 
-- **`validation_predictions.csv`**  
-  Token-by-token table with `input_token`, `target_next`, `pred_next`, `correct`, and confidences.
+| example_index | correct_full_sequence | predicted_full_sequence | next_token_accuracy | full_exact_match |
+| --- | --- | --- | --- | --- |
+| 0 | the dog helped the basket and the crowd watched | the bird moved the basket and the crowd watched | 0.777778 | 0 |
+| 1 | the farmer dropped the jacket and the crowd watched | the bird fixed the jacket and the crowd watched | 0.777778 | 0 |
+| 2 | the nurse chased the kite in the garden while the sky stayed clear | the bird watched the kite inside the garden | 0.692308 | 0 |
+| 3 | the bird moved the book before sunset | the bird dropped the book before sunset | 0.857143 | 0 |
+| 4 | the dog found the basket and the crowd watched | the bird moved the basket and the crowd watched | 0.777778 | 0 |
 
-- **`loss_history.csv`**  
-  Numeric train/validation losses per logged step.
+&nbsp;
 
-- **`run_summary.txt`**  
-  Run metadata and key summary numbers (dataset sizes, vocab size, sample loss, sample token accuracy).
+![100 Learning Curve](./diagrams/training_artifacts/learning_curve.png)
+![100 Attention Before After](./diagrams/training_artifacts/attention_before_after.png)
+![100 Validation Confidence](./diagrams/training_artifacts/validation_confidence.png)
+![100 Validation Top-k](./diagrams/training_artifacts/validation_topk_positions.png)
 
-## Generate Artifacts (Reproducible)
+### Experiment B: 1000-sentence corpus (`synthetic_corpus_1000.txt`)
+
+Artefacts: `diagrams/training_artifacts_1000/`  
+Config: `300` steps, batch size `32`, eval every `10`
+
+Latest run summary:
+
+- sentences: `1000` (`800` train / `200` val)
+- vocab size: `128`
+- train loss: `4.995986 -> 1.257914` (step `1` to `300`)
+- val loss: `4.654333 -> 1.306028` (step `1` to `300`)
+- sample token accuracy: `0.555556`
+- validation `<unk>` rate (seed `42`, val ratio `0.2`): `0.0000`
+
+Key insights:
+
+- The task is harder (larger data + larger vocabulary), so absolute loss is higher than Experiment A.
+- Train and validation losses track closely, showing better generalisation with more data.
+- Confidence is concentrated on structural tokens, while content-token prediction remains less certain.
+
+&nbsp;
+
+Validation sequence comparison preview (first 5 rows):
+
+| example_index | correct_full_sequence | predicted_full_sequence | next_token_accuracy | full_exact_match |
+| --- | --- | --- | --- | --- |
+| 0 | the artist pushed the bottle and the child watched | the student followed the guitar in the child watched | 0.555556 | 0 |
+| 1 | because the teacher was steady the artist carried the plant | because the robot was loud the pilot opened the mouse | 0.500000 | 0 |
+| 2 | anna told noah that noah should close the basket | anna told tom that noah should push the mouse | 0.666667 | 0 |
+| 3 | the chef moved the puzzle in the station | the student sat the guitar and the workshop | 0.375000 | 0 |
+| 4 | when the bird carried the kite the mechanic dropped the book | when the child moved the guitar the teacher opened the guitar | 0.454545 | 0 |
+
+&nbsp;
+
+![1000 Learning Curve](./diagrams/training_artifacts_1000/learning_curve.png)
+![1000 Attention Before After](./diagrams/training_artifacts_1000/attention_before_after.png)
+![1000 Validation Confidence](./diagrams/training_artifacts_1000/validation_confidence.png)
+![1000 Validation Top-k](./diagrams/training_artifacts_1000/validation_topk_positions.png)
+
+For each experiment, these files are generated:
+
+- `learning_curve.png`: train/validation loss progression
+- `attention_before_after.png`: all layers x heads before vs after training
+- `validation_confidence.png`: position-wise `P(pred)` vs `P(target)` on one validation sample
+- `validation_topk_positions.png`: top-k token distributions for all positions in one validation sample
+- `validation_predictions.csv`: token-level predictions and correctness
+- `validation_sequence_comparison.csv`: one row per validation example with full correct vs predicted sequence
+- `loss_history.csv`: numeric logged losses
+- `run_summary.txt`: run metadata and summary metrics
+
+## Generate Artefacts (Reproducible)
 
 Run from repository root (`transformer-from-scratch/`).
 
-### 1) Train and save learning artifacts
+### 1) Experiment A (100 sentences)
 
 ```bash
-python utils/generate_training_artifacts.py \
+python -m utils.generate_training_artifacts \
   --corpus-path data/synthetic_corpus_100.txt \
   --output-dir diagrams/training_artifacts \
   --num-steps 300 \
@@ -103,7 +159,7 @@ python utils/generate_training_artifacts.py \
   --num-heads 2 \
   --d-ff 64 \
   --num-layers 2 \
-  --sample-index 0 \
+  --sample-index 1 \
   --top-k 5
 ```
 
@@ -114,19 +170,40 @@ Outputs in `diagrams/training_artifacts/`:
 - `validation_confidence.png`
 - `validation_topk_positions.png`
 - `validation_predictions.csv`
+- `validation_sequence_comparison.csv`
 - `loss_history.csv`
 - `run_summary.txt`
 
-### 2) Generate positional encoding visuals
+### 2) Experiment B (1000 sentences)
 
 ```bash
-python utils/positional_encoding_viz.py --d-model 32 --seq-len 100
+python -m utils.generate_training_artifacts \
+  --corpus-path data/synthetic_corpus_1000.txt \
+  --output-dir diagrams/training_artifacts_1000 \
+  --num-steps 300 \
+  --batch-size 32 \
+  --learning-rate 0.01 \
+  --val-ratio 0.2 \
+  --eval-every 10 \
+  --seed 42 \
+  --d-model 16 \
+  --num-heads 2 \
+  --d-ff 64 \
+  --num-layers 2 \
+  --sample-index 0 \
+  --top-k 5
 ```
 
-Outputs in `diagrams/`:
+Outputs in `diagrams/training_artifacts_1000/`:
 
-- `positional_encoding_waves.png`
-- `positional_encoding_heatmap.png`
+- `learning_curve.png`
+- `attention_before_after.png`
+- `validation_confidence.png`
+- `validation_topk_positions.png`
+- `validation_predictions.csv`
+- `validation_sequence_comparison.csv`
+- `loss_history.csv`
+- `run_summary.txt`
 
 ## Troubleshooting
 

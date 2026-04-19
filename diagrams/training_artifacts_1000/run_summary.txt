@@ -1,0 +1,12 @@
+corpus_path=data/synthetic_corpus_1000.txt
+total_sentences=1000
+train_sentences=800
+val_sentences=200
+train_examples=800
+val_examples=200
+vocab_size=128
+device=cpu
+sample_index=0
+sample_loss=1.237226
+sample_token_accuracy=0.555556
+artifacts_dir=diagrams/training_artifacts_1000

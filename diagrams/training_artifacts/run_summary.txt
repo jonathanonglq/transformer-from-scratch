@@ -1,4 +1,4 @@
-corpus_path=/Users/jonathanong/Documents/GitHub/transformer-from-scratch/data/synthetic_corpus_100.txt
+corpus_path=data/synthetic_corpus_100.txt
 total_sentences=100
 train_sentences=80
 val_sentences=20
@@ -9,4 +9,4 @@ device=cpu
 sample_index=1
 sample_loss=0.478811
 sample_token_accuracy=0.777778
-artifacts_dir=/Users/jonathanong/Documents/GitHub/transformer-from-scratch/diagrams/training_artifacts
+artifacts_dir=diagrams/training_artifacts
